@@ -580,7 +580,7 @@ class Tree extends React.Component<TreeProps, TreeState> {
                   centerNode={this.centerNode}
                 />
               );
-            })}
+            }).reverse()}
           </TransitionGroupWrapper>
         </svg>
       </div>
