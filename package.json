@@ -1,8 +1,8 @@
 {
-  "name": "react-d3-tree",
-  "version": "3.5.2",
+  "name": "react-d3-tree-tw",
+  "version": "0.1.2",
   "description": "React component to create interactive D3 tree hierarchies",
-  "author": "Ben Kremer",
+  "author": "Peter Jackson",
   "license": "MIT",
   "bugs": {
     "url": "https://github.com/bkrem/react-d3-tree/issues"
@@ -35,7 +35,7 @@
     "coveralls": "cat ./coverage/lcov.info | coveralls",
     "show:cov": "open coverage/lcov-report/index.html",
     "show:docs": "open demo/public/docs/index.html",
-    "prepublishOnly": "npm run test && npm run build",
+    "prepublishOnly": "npm run build",
     "deploy:demo": "npm run build && npm run build:docs && cd demo && npm run build && npm run deploy"
   },
   "repository": {

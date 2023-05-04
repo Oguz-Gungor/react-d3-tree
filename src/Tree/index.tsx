@@ -427,6 +427,9 @@ class Tree extends React.Component<TreeProps, TreeState> {
       // coordinates when dragged/zoomed
       //@ts-ignore
       svg.call(d3zoom().transform, zoomIdentity.translate(x, y).scale(zoom));
+      if(this.props.onUpdate){
+        this.props.onUpdate({ node: null ,zoom:zoom ?? scale, translate: { x, y } });
+      }
     }
   };
 
@@ -557,30 +560,32 @@ class Tree extends React.Component<TreeProps, TreeState> {
               );
             })}
 
-            {nodes.map((hierarchyPointNode, i) => {
-              const { data, x, y, parent } = hierarchyPointNode;
-              return (
-                <Node
-                  key={'node-' + i}
-                  data={data}
-                  position={{ x, y }}
-                  hierarchyPointNode={hierarchyPointNode}
-                  parent={parent}
-                  nodeClassName={this.getNodeClassName(parent, data)}
-                  renderCustomNodeElement={renderCustomNodeElement}
-                  nodeSize={nodeSize}
-                  orientation={orientation}
-                  enableLegacyTransitions={enableLegacyTransitions}
-                  transitionDuration={transitionDuration}
-                  onNodeToggle={this.handleNodeToggle}
-                  onNodeClick={this.handleOnNodeClickCb}
-                  onNodeMouseOver={this.handleOnNodeMouseOverCb}
-                  onNodeMouseOut={this.handleOnNodeMouseOutCb}
-                  subscriptions={subscriptions}
-                  centerNode={this.centerNode}
-                />
-              );
-            }).reverse()}
+            {nodes
+              .map((hierarchyPointNode, i) => {
+                const { data, x, y, parent } = hierarchyPointNode;
+                return (
+                  <Node
+                    key={'node-' + i}
+                    data={data}
+                    position={{ x, y }}
+                    hierarchyPointNode={hierarchyPointNode}
+                    parent={parent}
+                    nodeClassName={this.getNodeClassName(parent, data)}
+                    renderCustomNodeElement={renderCustomNodeElement}
+                    nodeSize={nodeSize}
+                    orientation={orientation}
+                    enableLegacyTransitions={enableLegacyTransitions}
+                    transitionDuration={transitionDuration}
+                    onNodeToggle={this.handleNodeToggle}
+                    onNodeClick={this.handleOnNodeClickCb}
+                    onNodeMouseOver={this.handleOnNodeMouseOverCb}
+                    onNodeMouseOut={this.handleOnNodeMouseOutCb}
+                    subscriptions={subscriptions}
+                    centerNode={this.centerNode}
+                  />
+                );
+              })
+              .reverse()}
           </TransitionGroupWrapper>
         </svg>
       </div>
