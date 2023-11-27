@@ -24,9 +24,15 @@ interface LinkProps {
   pathClassFunc?: PathClassFunction;
   enableLegacyTransitions: boolean;
   transitionDuration: number;
+  nodeSize: {
+    x: number;
+    y: number;
+  };
   onClick: LinkEventHandler;
   onMouseOver: LinkEventHandler;
   onMouseOut: LinkEventHandler;
+  depthHeights?: { [key: number]: number };
+  depthFactor: number;
 }
 
 type LinkState = {
@@ -70,10 +76,26 @@ export default class Link extends React.PureComponent<LinkProps, LinkState> {
 
   drawStepPath(linkData: LinkProps['linkData'], orientation: LinkProps['orientation']) {
     const { source, target } = linkData;
-    const deltaY = target.y - source.y;
+    const [translateSourceHeight, translateTargetHeight] = Object.entries(
+      this.props.depthHeights ?? {}
+    ).reduce(
+      ([prevSourceTranslate, prevTargetTranslate], [depth, height]: any) => {
+        if (depth < source.depth) {
+          prevSourceTranslate += this.props.nodeSize.y - height;
+        }
+        if (depth < target.depth) {
+          prevTargetTranslate += this.props.nodeSize.y - height;
+        }
+        return [prevSourceTranslate, prevTargetTranslate];
+      },
+      [0, 0]
+    );
+    const targetY = target.y - translateTargetHeight + (this.props.depthFactor  ?? 1) * target.depth;
+    const sourceY = source.y - translateSourceHeight + (this.props.depthFactor  ?? 1) * source.depth;
+    const deltaY = targetY - sourceY;
     return orientation === 'horizontal'
       ? `M${source.y},${source.x} H${source.y + deltaY / 2} V${target.x} H${target.y}`
-      : `M${source.x},${source.y} V${source.y + deltaY / 2} H${target.x} V${target.y}`;
+      : `M${source.x},${sourceY} V${sourceY + deltaY - 20} H${target.x} V${targetY}`;
   }
 
   drawDiagonalPath(linkData: LinkProps['linkData'], orientation: LinkProps['orientation']) {

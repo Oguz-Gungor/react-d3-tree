@@ -200,12 +200,12 @@ export interface TreeProps {
    */
   zoomable?: boolean;
 
-   /**
+  /**
    * Toggles ability to drag the Tree.
    *
    * {@link Tree.defaultProps.draggable | Default value}
    */
-   draggable?: boolean;
+  draggable?: boolean;
 
   /**
    * A floating point number to set the initial zoom level. It is constrained by `scaleExtent`.
@@ -310,4 +310,10 @@ export interface TreeProps {
    * {@link Tree.defaultProps.hasInteractiveNodes | Default value}
    */
   hasInteractiveNodes?: boolean;
+
+  depthHeights?: { [key: number]: number };
+
+  pannable?: boolean;
+
+  panRate?: number;
 }

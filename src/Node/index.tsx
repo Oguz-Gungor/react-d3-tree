@@ -20,6 +20,7 @@ type NodeProps = {
     x: number;
     y: number;
   };
+  depthFactor: number;
   orientation: Orientation;
   enableLegacyTransitions: boolean;
   transitionDuration: number;
@@ -30,6 +31,7 @@ type NodeProps = {
   onNodeMouseOut: NodeEventHandler;
   subscriptions: object;
   centerNode: (hierarchyPointNode: HierarchyPointNode<TreeNodeDatum>) => void;
+  depthHeights?: { [key: number]: number };
 };
 
 type NodeState = {
@@ -96,9 +98,18 @@ export default class Node extends React.Component<NodeProps, NodeState> {
         ? `translate(${originY},${originX})`
         : `translate(${originX},${originY})`;
     }
+    const translate = Object.entries(this.props.depthHeights ?? {}).reduce(
+      (prevTranslate, [depth, height]: any) => {
+        if (depth < this.props.hierarchyPointNode.depth) {
+          prevTranslate += this.props.nodeSize.y - height;
+        }
+        return prevTranslate;
+      },
+      this.props.hierarchyPointNode.depth * -1 * (this.props.depthFactor ?? 1)
+    );
     return orientation === 'horizontal'
       ? `translate(${position.y},${position.x})`
-      : `translate(${position.x},${position.y})`;
+      : `translate(${position.x},${position.y - translate})`;
   }
 
   applyTransform(

@@ -39,6 +39,7 @@ class Tree extends React.Component<TreeProps, TreeState> {
     collapsible: true,
     initialDepth: undefined,
     zoomable: true,
+    pannable: true,
     draggable: true,
     zoom: 1,
     scaleExtent: { min: 0.1, max: 1 },
@@ -150,47 +151,81 @@ class Tree extends React.Component<TreeProps, TreeState> {
     // Sets initial offset, so that first pan and zoom does not jump back to default [0,0] coords.
     // @ts-ignore
     svg.call(d3zoom().transform, zoomIdentity.translate(translate.x, translate.y).scale(zoom));
-    svg.call(
-      d3zoom()
-        .scaleExtent(zoomable ? [scaleExtent.min, scaleExtent.max] : [zoom, zoom])
-        // TODO: break this out into a separate zoom handler fn, rather than inlining it.
-        .filter((event: any) => {
-          if (hasInteractiveNodes) {
-            return (
-              event.target.classList.contains(this.svgInstanceRef) ||
-              event.target.classList.contains(this.gInstanceRef) ||
-              event.shiftKey
+    const zoomer = d3zoom()
+      .scaleExtent(zoomable ? [scaleExtent.min, scaleExtent.max] : [zoom, zoom])
+      // TODO: break this out into a separate zoom handler fn, rather than inlining it.
+      .filter((event: any) => {
+        if (hasInteractiveNodes) {
+          return (
+            event.target.classList.contains(this.svgInstanceRef) ||
+            event.target.classList.contains(this.gInstanceRef) ||
+            event.shiftKey
+          );
+        }
+        return true;
+      })
+      .on('zoom', (event: any) => {
+        if (
+          !this.props.draggable &&
+          ['mousemove', 'touchmove', 'dblclick'].includes(event.sourceEvent.type)
+        ) {
+          return;
+        }
+        event.transform.k = this.state.d3.scale;
+        console.log(event.transform);
+        console.log(event);
+        const panPadding = 200;
+        try {
+          if (event.transform.y <= panPadding) {
+            const frameHeight = svg.property('scrollHeight') / event.transform.k;
+            const contentHeight = Object.values(this.props.depthHeights).reduce(
+              (prevValue, height) => prevValue + height,
+              0
             );
+            if (frameHeight - event.transform.y > contentHeight + panPadding) {
+              event.transform.y = frameHeight - (contentHeight + panPadding);
+            }
+          } else {
+            event.transform.y = panPadding;
           }
-          return true;
-        })
-        .on('zoom', (event: any) => {
-          if (
-            !this.props.draggable &&
-            ['mousemove', 'touchmove', 'dblclick'].includes(event.sourceEvent.type)
-          ) {
-            return;
-          }
-
           g.attr('transform', event.transform);
-          if (typeof onUpdate === 'function') {
-            // This callback is magically called not only on "zoom", but on "drag", as well,
-            // even though event.type == "zoom".
-            // Taking advantage of this and not writing a "drag" handler.
-            onUpdate({
-              node: null,
-              zoom: event.transform.k,
-              translate: { x: event.transform.x, y: event.transform.y },
-            });
-            // TODO: remove this? Shouldn't be mutating state keys directly.
-            this.state.d3.scale = event.transform.k;
-            this.state.d3.translate = {
-              x: event.transform.x,
-              y: event.transform.y,
-            };
-          }
-        })
-    );
+        } catch (ex) {}
+        if (typeof onUpdate === 'function') {
+          // This callback is magically called not only on "zoom", but on "drag", as well,
+          // even though event.type == "zoom".
+          // Taking advantage of this and not writing a "drag" handler.
+          onUpdate({
+            node: null,
+            zoom: event.transform.k,
+            translate: { x: event.transform.x, y: event.transform.y },
+          });
+          // TODO: remove this? Shouldn't be mutating state keys directly.
+          //this.state.d3.scale = event.transform.k;
+          this.state.d3.translate = {
+            x: event.transform.x,
+            y: event.transform.y,
+          };
+        }
+      });
+    svg
+      .call(zoomer)
+      .on('wheel.zoom', null)
+      .on('wheel', (event: WheelEvent ) => {
+        if (this.props.pannable) {
+          const panX =
+            (Math.abs(event.deltaX) / (event.deltaX || 1)) *
+            Math.min(Math.abs(event.deltaX * 10), this.props.panRate ?? 50);
+          const panY =
+            (Math.abs(event.deltaY) / (event.deltaY || 1)) *
+            Math.min(Math.abs(event.deltaY * 10), this.props.panRate ?? 50);
+          zoomer.translateBy(
+            // @ts-ignore
+            svg.transition().duration(100),
+            0,
+            -panY
+          );
+        }
+      });
   }
 
   /**
@@ -417,7 +452,18 @@ class Tree extends React.Component<TreeProps, TreeState> {
       } else {
         // else, calculate the variables normally (x->x, y->y)
         x = -hierarchyPointNode.x * scale + dimensions.width / 2;
-        y = -hierarchyPointNode.y * scale + dimensions.height / 2;
+        //set dimension.y as nodeheight to focus to top of node
+        const translate = Object.entries(this.props.depthHeights ?? {}).reduce(
+          (prevTranslate, [depth, height]: any) => {
+            if (depth < hierarchyPointNode.depth) {
+              prevTranslate += this.props.nodeSize.y - height;
+            }
+            return prevTranslate;
+          },
+          hierarchyPointNode.depth * -1 * (this.props.depthFactor ?? 1)
+        );
+        y = (dimensions.height / 2 - (hierarchyPointNode.y - translate)) * scale;
+        //y = (this.svgInstanceRef.height -hierarchyPointNode.y) * scale;
       }
       //@ts-ignore
       g.transition()
@@ -427,8 +473,8 @@ class Tree extends React.Component<TreeProps, TreeState> {
       // coordinates when dragged/zoomed
       //@ts-ignore
       svg.call(d3zoom().transform, zoomIdentity.translate(x, y).scale(zoom));
-      if(this.props.onUpdate){
-        this.props.onUpdate({ node: null ,zoom:zoom ?? scale, translate: { x, y } });
+      if (this.props.onUpdate) {
+        this.props.onUpdate({ node: null, zoom: zoom ?? scale, translate: { x, y } });
       }
     }
   };
@@ -461,11 +507,11 @@ class Tree extends React.Component<TreeProps, TreeState> {
       this.setInitialTreeDepth(nodes, initialDepth);
     }
 
-    if (depthFactor) {
+    /*if (depthFactor) {
       nodes.forEach(node => {
         node.y = node.depth * depthFactor;
       });
-    }
+    }*/
 
     return { nodes, links };
   }
@@ -554,8 +600,11 @@ class Tree extends React.Component<TreeProps, TreeState> {
                   onClick={this.handleOnLinkClickCb}
                   onMouseOver={this.handleOnLinkMouseOverCb}
                   onMouseOut={this.handleOnLinkMouseOutCb}
+                  depthFactor={depthFactor}
+                  nodeSize={nodeSize}
                   enableLegacyTransitions={enableLegacyTransitions}
                   transitionDuration={transitionDuration}
+                  depthHeights={this.props.depthHeights}
                 />
               );
             })}
@@ -573,6 +622,7 @@ class Tree extends React.Component<TreeProps, TreeState> {
                     nodeClassName={this.getNodeClassName(parent, data)}
                     renderCustomNodeElement={renderCustomNodeElement}
                     nodeSize={nodeSize}
+                    depthFactor={depthFactor}
                     orientation={orientation}
                     enableLegacyTransitions={enableLegacyTransitions}
                     transitionDuration={transitionDuration}
@@ -582,6 +632,7 @@ class Tree extends React.Component<TreeProps, TreeState> {
                     onNodeMouseOut={this.handleOnNodeMouseOutCb}
                     subscriptions={subscriptions}
                     centerNode={this.centerNode}
+                    depthHeights={this.props.depthHeights}
                   />
                 );
               })
