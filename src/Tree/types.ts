@@ -311,9 +311,9 @@ export interface TreeProps {
    */
   hasInteractiveNodes?: boolean;
 
-  depthHeights?: { [key: number]: number };
+  depthHeights?: { [key: number]: { height: number; scrollHeight: number } };
 
-  pannable?: boolean;
+  pannable?: { value: boolean };
 
   panRate?: number;
 }

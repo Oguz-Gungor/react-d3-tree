@@ -39,7 +39,7 @@ class Tree extends React.Component<TreeProps, TreeState> {
     collapsible: true,
     initialDepth: undefined,
     zoomable: true,
-    pannable: true,
+    pannable: { value: true },
     draggable: true,
     zoom: 1,
     scaleExtent: { min: 0.1, max: 1 },
@@ -179,7 +179,7 @@ class Tree extends React.Component<TreeProps, TreeState> {
           if (event.transform.y <= panPadding) {
             const frameHeight = svg.property('scrollHeight') / event.transform.k;
             const contentHeight = Object.values(this.props.depthHeights).reduce(
-              (prevValue, height) => prevValue + height,
+              (prevValue, { scrollHeight }) => prevValue + scrollHeight,
               0
             );
             if (frameHeight - event.transform.y > contentHeight + panPadding) {
@@ -210,8 +210,8 @@ class Tree extends React.Component<TreeProps, TreeState> {
     svg
       .call(zoomer)
       .on('wheel.zoom', null)
-      .on('wheel', (event: WheelEvent ) => {
-        if (this.props.pannable) {
+      .on('wheel', (event: WheelEvent) => {
+        if (this.props.pannable.value) {
           const panX =
             (Math.abs(event.deltaX) / (event.deltaX || 1)) *
             Math.min(Math.abs(event.deltaX * 10), this.props.panRate ?? 50);
@@ -454,7 +454,7 @@ class Tree extends React.Component<TreeProps, TreeState> {
         x = -hierarchyPointNode.x * scale + dimensions.width / 2;
         //set dimension.y as nodeheight to focus to top of node
         const translate = Object.entries(this.props.depthHeights ?? {}).reduce(
-          (prevTranslate, [depth, height]: any) => {
+          (prevTranslate, [depth, { height }]: any) => {
             if (depth < hierarchyPointNode.depth) {
               prevTranslate += this.props.nodeSize.y - height;
             }

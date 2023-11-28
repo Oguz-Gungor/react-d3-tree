@@ -31,7 +31,7 @@ interface LinkProps {
   onClick: LinkEventHandler;
   onMouseOver: LinkEventHandler;
   onMouseOut: LinkEventHandler;
-  depthHeights?: { [key: number]: number };
+  depthHeights?: { [key: number]: { height: number; scrollHeight: number } };
   depthFactor: number;
 }
 
@@ -79,7 +79,7 @@ export default class Link extends React.PureComponent<LinkProps, LinkState> {
     const [translateSourceHeight, translateTargetHeight] = Object.entries(
       this.props.depthHeights ?? {}
     ).reduce(
-      ([prevSourceTranslate, prevTargetTranslate], [depth, height]: any) => {
+      ([prevSourceTranslate, prevTargetTranslate], [depth, {height}]: any) => {
         if (depth < source.depth) {
           prevSourceTranslate += this.props.nodeSize.y - height;
         }

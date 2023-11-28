@@ -31,7 +31,7 @@ type NodeProps = {
   onNodeMouseOut: NodeEventHandler;
   subscriptions: object;
   centerNode: (hierarchyPointNode: HierarchyPointNode<TreeNodeDatum>) => void;
-  depthHeights?: { [key: number]: number };
+  depthHeights?: { [key: number]: { height: number; scrollHeight: number } };
 };
 
 type NodeState = {
@@ -99,7 +99,7 @@ export default class Node extends React.Component<NodeProps, NodeState> {
         : `translate(${originX},${originY})`;
     }
     const translate = Object.entries(this.props.depthHeights ?? {}).reduce(
-      (prevTranslate, [depth, height]: any) => {
+      (prevTranslate, [depth, { height }]: any) => {
         if (depth < this.props.hierarchyPointNode.depth) {
           prevTranslate += this.props.nodeSize.y - height;
         }

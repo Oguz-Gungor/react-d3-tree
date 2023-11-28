@@ -1,6 +1,6 @@
 {
   "name": "react-d3-tree-tw",
-  "version": "0.2.9",
+  "version": "0.3.0",
   "description": "React component to create interactive D3 tree hierarchies",
   "author": "Peter Jackson",
   "license": "MIT",
