@@ -172,8 +172,6 @@ class Tree extends React.Component<TreeProps, TreeState> {
           return;
         }
         event.transform.k = this.state.d3.scale;
-        console.log(event.transform);
-        console.log(event);
         const panPadding = 200;
         try {
           if (event.transform.y <= panPadding) {
