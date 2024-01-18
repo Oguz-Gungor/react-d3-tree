@@ -172,18 +172,17 @@ class Tree extends React.Component<TreeProps, TreeState> {
           return;
         }
         event.transform.k = this.state.d3.scale;
-        console.log(event.transform);
-        console.log(event);
-        const panPadding = 200;
+        const frameHeight = svg.property('scrollHeight') * event.transform.k;
+        const contentHeight =
+          Object.values(this.props.depthHeights).reduce(
+            (prevValue, { scrollHeight }) => prevValue + scrollHeight,
+            0
+          ) * event.transform.k;
+        const panPadding = frameHeight / 2;
         try {
           if (event.transform.y <= panPadding) {
-            const frameHeight = svg.property('scrollHeight') / event.transform.k;
-            const contentHeight = Object.values(this.props.depthHeights).reduce(
-              (prevValue, { scrollHeight }) => prevValue + scrollHeight,
-              0
-            );
-            if (frameHeight - event.transform.y > contentHeight + panPadding) {
-              event.transform.y = frameHeight - (contentHeight + panPadding);
+            if (-event.transform.y > contentHeight - panPadding) {
+              event.transform.y = -(contentHeight - panPadding);
             }
           } else {
             event.transform.y = panPadding;
