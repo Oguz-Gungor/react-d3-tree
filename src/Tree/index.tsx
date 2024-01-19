@@ -19,6 +19,7 @@ type TreeState = {
   d3: { translate: Point; scale: number };
   isTransitioning: boolean;
   isInitialRenderForDataset: boolean;
+  dragStart?: { x: number; y: number };
 };
 
 class Tree extends React.Component<TreeProps, TreeState> {
@@ -63,7 +64,10 @@ class Tree extends React.Component<TreeProps, TreeState> {
     d3: Tree.calculateD3Geometry(this.props),
     isTransitioning: false,
     isInitialRenderForDataset: true,
+    dragStart: null,
   };
+
+  private isDragLeft = false;
 
   private internalState = {
     targetNode: null,
@@ -206,6 +210,7 @@ class Tree extends React.Component<TreeProps, TreeState> {
           };
         }
       });
+    // console.log('init');
     svg
       .call(zoomer)
       .on('wheel.zoom', null)
@@ -224,7 +229,57 @@ class Tree extends React.Component<TreeProps, TreeState> {
             -panY
           );
         }
+      })
+      .on('dragenter', (event: DragEvent) => {
+        this.isDragLeft = false;
+      })
+      .on('dragleave', (event: DragEvent) => {
+        this.isDragLeft = true;
+      })
+      .on('dragover', (event: DragEvent) => {
+        this.isDragLeft = false;
       });
+    window.ondragstart = (event: DragEvent) => {
+      this.isDragLeft = false;
+      this.setState(prevState => ({
+        ...prevState,
+        dragStart: { x: event.clientX, y: event.clientY },
+      }));
+    };
+    window.ondragend = () => {
+      this.setState(prevState => ({
+        ...prevState,
+        dragStart: null,
+      }));
+    };
+    const borderbuffer = 100;
+    const dimensionSense = 100;
+    const windowWidth = window.innerWidth;
+    const windowHeight = window.innerHeight;
+    window.ondragover = (event: DragEvent) => {
+      const startPosition = this.state.dragStart;
+      if (
+        this.isDragLeft ||
+        event.clientX < borderbuffer ||
+        event.clientX + borderbuffer > windowWidth ||
+        event.clientY < borderbuffer ||
+        event.clientY + borderbuffer > windowHeight
+      ) {
+        const distanceX = startPosition.x - event.clientX;
+        const distanceY = startPosition.y - event.clientY;
+        const distance = Math.sqrt(Math.pow(distanceX, 2) + Math.pow(distanceY, 2));
+        const distanceLog = Math.log(distance);
+        zoomer.translateBy(
+          // @ts-ignore
+          svg.transition().duration(100),
+          ((Math.abs(distanceX) > dimensionSense ? distanceX : 0) / distance) * distanceLog * 10,
+          ((Math.abs(distanceY) > dimensionSense ? distanceY : 0) / distance) * distanceLog * 10
+        );
+      }
+      // console.log(this.state.dragStart);
+      // console.log(event.clientX, event.clientY);
+      // console.log(window.innerWidth, window.innerHeight);
+    };
   }
 
   /**
